@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinicEase – Nurse Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--primary:#1a6b5a;--primary-l:#22886f;--accent:#e8f5f1;--text:#1c2b27;--muted:#5a736d;--border:#cde3dd;--surface:#fff;--bg:#f0f7f5}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+
+        .sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:linear-gradient(180deg,#1a6b5a 0%,#0f4a3c 100%);color:#fff;display:flex;flex-direction:column;padding:1.5rem 0;z-index:100}
+        .sidebar-brand{padding:0 1.5rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.1)}
+        .sidebar-brand h1{font-family:'DM Serif Display',serif;font-size:1.4rem}
+        .sidebar-brand p{font-size:0.75rem;opacity:0.6;margin-top:2px}
+        nav{flex:1;padding-top:1rem}
+        nav a{display:flex;align-items:center;gap:10px;padding:11px 1.5rem;font-size:0.88rem;color:rgba(255,255,255,0.75);text-decoration:none;cursor:pointer;transition:background 0.15s}
+        nav a:hover,nav a.active{background:rgba(255,255,255,0.12);color:#fff}
+        nav a .icon{width:20px;text-align:center}
+        .sidebar-footer{padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,0.1)}
+        .logout-btn{margin-top:10px;width:100%;padding:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#fff;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer}
+        .logout-btn:hover{background:rgba(255,255,255,0.1)}
+
+        .main{margin-left:240px;min-height:100vh}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+        .topbar h2{font-family:'DM Serif Display',serif;font-size:1.3rem}
+        .content{padding:2rem}
+
+        .section{display:none}
+        .section.active{display:block;animation:fadeIn 0.2s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+        .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+        .stat-card{background:var(--surface);border-radius:14px;padding:1.2rem 1.5rem;border:1px solid var(--border)}
+        .stat-card .label{font-size:0.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+        .stat-card .value{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--primary);margin-top:4px}
+        .stat-card .sub{font-size:0.75rem;color:var(--muted);margin-top:2px}
+
+        .panel{background:var(--surface);border-radius:14px;border:1px solid var(--border);margin-bottom:1.5rem;overflow:hidden}
+        .panel-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+        .panel-header h3{font-size:1rem;font-weight:600}
+        .panel-body{padding:1.5rem}
+
+        table{width:100%;border-collapse:collapse;font-size:0.87rem}
+        th{text-align:left;padding:9px 14px;font-size:0.73rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);white-space:nowrap}
+        td{padding:11px 14px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#fafffe}
+        .empty{text-align:center;padding:2.5rem;color:var(--muted);font-size:0.88rem}
+
+        .btn{padding:9px 20px;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.87rem;font-weight:500;cursor:pointer;transition:background 0.15s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:var(--primary-l)}
+        .btn-sm{padding:5px 12px;font-size:0.78rem;border-radius:7px}
+
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        .field{display:flex;flex-direction:column;gap:5px}
+        .field label{font-size:0.82rem;font-weight:500}
+        .field input,.field select{padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;background:var(--surface)}
+        .field input:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,90,0.1)}
+        .field-full{grid-column:1/-1}
+        .form-msg{font-size:0.85rem;margin-top:0.75rem;padding:9px 14px;border-radius:8px;display:none}
+        .form-msg.ok{background:#d1fae5;color:#065f46;display:block}
+        .form-msg.err{background:#fee2e2;color:#991b1b;display:block}
+
+        .vital-unit{font-size:0.75rem;color:var(--muted);margin-left:4px}
+        .badge{padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:500;text-transform:capitalize;display:inline-block}
+        .badge-pending{background:#fff8e1;color:#b45309;border:1px solid #fcd34d}
+        .badge-confirmed{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc}
+        .badge-completed{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+        .badge-cancelled{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+
+        @media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.stat-row{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <h1>ClinicEase</h1>
+        <p>Nurse Portal</p>
+    </div>
+    <nav>
+        <a class="active" onclick="showSec(this,'overview')"><span class="icon">🏠</span> Overview</a>
+        <a onclick="showSec(this,'record-vitals')"><span class="icon">💊</span> Record Vitals</a>
+        <a onclick="showSec(this,'appointments')"><span class="icon">📅</span> Appointments</a>
+        <a onclick="showSec(this,'vitals-history')"><span class="icon">📋</span> Vitals History</a>
+    </nav>
+    <div class="sidebar-footer">
+        <div style="font-size:0.88rem;font-weight:500" id="sb-name">Loading…</div>
+        <div style="font-size:0.75rem;opacity:0.55">Nurse</div>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="topbar">
+        <h2 id="section-title">Overview</h2>
+        <span style="font-size:0.82rem;color:var(--muted)" id="today-date"></span>
+    </div>
+
+    <div class="content">
+
+        <!-- OVERVIEW -->
+        <div class="section active" id="sec-overview">
+            <div class="stat-row">
+                <div class="stat-card">
+                    <div class="label">Today's Appointments</div>
+                    <div class="value" id="st-today">—</div>
+                    <div class="sub">Scheduled for today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Vitals Recorded</div>
+                    <div class="value" id="st-vitals">—</div>
+                    <div class="sub">By you total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Pending Triage</div>
+                    <div class="value" id="st-pending">—</div>
+                    <div class="sub">Appointments awaiting vitals</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>Today's Appointments</h3>
+                    <span style="font-size:0.82rem;color:var(--muted)" id="today-label"></span>
+                </div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Time</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="today-appts"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECORD VITALS -->
+        <div class="section" id="sec-record-vitals">
+            <div class="panel">
+                <div class="panel-header"><h3>Record Patient Vitals</h3></div>
+                <div class="panel-body">
+                    <div class="form-grid">
+                        <div class="field field-full">
+                            <label>Select Patient</label>
+                            <select id="v-patient">
+                                <option value="">Loading patients…</option>
+                            </select>
+                        </div>
+                        <div class="field field-full">
+                            <label>Link to Appointment (optional)</label>
+                            <select id="v-appointment">
+                                <option value="">— No appointment selected —</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Blood Pressure <span class="vital-unit">(e.g. 120/80)</span></label>
+                            <input type="text" id="v-bp" placeholder="120/80">
+                        </div>
+                        <div class="field">
+                            <label>Temperature <span class="vital-unit">(°C)</span></label>
+                            <input type="number" id="v-temp" placeholder="36.6" step="0.1" min="30" max="45">
+                        </div>
+                        <div class="field">
+                            <label>Pulse <span class="vital-unit">(bpm)</span></label>
+                            <input type="number" id="v-pulse" placeholder="72" min="20" max="300">
+                        </div>
+                        <div class="field">
+                            <label>Weight <span class="vital-unit">(kg)</span></label>
+                            <input type="number" id="v-weight" placeholder="70.0" step="0.1" min="1" max="500">
+                        </div>
+                        <div class="field">
+                            <label>Oxygen Saturation <span class="vital-unit">(%)</span></label>
+                            <input type="number" id="v-o2" placeholder="98" min="50" max="100">
+                        </div>
+                    </div>
+                    <div id="vitals-msg" class="form-msg"></div>
+                    <button class="btn btn-primary" style="margin-top:1rem" onclick="submitVitals()">Save Vitals</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL APPOINTMENTS -->
+        <div class="section" id="sec-appointments">
+            <div class="panel">
+                <div class="panel-header"><h3>All Appointments</h3></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Date</th><th>Time</th><th>Patient</th><th>Doctor</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="all-appts"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VITALS HISTORY -->
+        <div class="section" id="sec-vitals-history">
+            <div class="panel">
+                <div class="panel-header"><h3>Vitals History</h3><span style="font-size:0.82rem;color:var(--muted)">All vitals you have recorded</span></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Date</th><th>Patient</th><th>BP</th><th>Temp °C</th><th>Pulse</th><th>Weight kg</th><th>O₂ %</th></tr></thead>
+                        <tbody id="vitals-history-table"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const API_BASE = '/api';
+function getToken() { return localStorage.getItem('ce_token'); }
+function getUser() { try { return JSON.parse(localStorage.getItem('ce_user') || '{}'); } catch { return {}; } }
+function logout() { localStorage.removeItem('ce_token'); localStorage.removeItem('ce_user'); window.location.href = '/index.html'; }
+async function apiFetch(endpoint, options = {}) {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...(options.headers || {}) };
+    const res = await fetch(API_BASE + endpoint, { ...options, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+    return data;
+}
+function requireAuth(allowedRoles = []) {
+    const token = getToken(); const user = getUser();
+    if (!token || !user.id) { window.location.href = '/index.html'; return false; }
+    if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) { window.location.href = '/index.html'; return false; }
+    return true;
+}
+function formatDate(d) { if (!d) return '—'; var s = d.toString().slice(0,10); return new Date(s + 'T12:00:00').toLocaleDateString('en-ZA', { day:'numeric', month:'long', year:'numeric' }); }
+function formatTime(t) { if (!t) return '—'; return t.slice(0,5); }
+</script>
+<script>
+requireAuth(['nurse']);
+const user = getUser();
+document.getElementById('sb-name').textContent    = user.full_name || 'Nurse';
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-ZA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-ZA',{weekday:'long',day:'numeric',month:'long'});
+
+// ── Section switching ──
+function showSec(el, name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    el.classList.add('active');
+    const titles = {'overview':'Overview','record-vitals':'Record Vitals','appointments':'Appointments','vitals-history':'Vitals History'};
+    document.getElementById('section-title').textContent = titles[name] || name;
+    if (name === 'record-vitals')   loadPatientsForForm();
+    if (name === 'appointments')    loadAllAppts();
+    if (name === 'vitals-history')  loadVitalsHistory();
+}
+
+// ── OVERVIEW ──
+async function loadOverview() {
+    try {
+        const [aData, vData] = await Promise.all([
+            apiFetch('/appointments').catch(() => ({ data: [] })),
+            apiFetch('/vitals').catch(() => ({ data: [] }))
+        ]);
+        const appts  = aData.data || [];
+        const vitals = vData.data || [];
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayAppts  = appts.filter(function(a) {
+            if (!a.appointment_date) return false;
+            // MySQL may return full ISO string OR just date string
+            const d = a.appointment_date.toString().slice(0, 10);
+            return d === todayStr;
+        });
+        const pendingAppts = appts.filter(a => a.status === 'pending' || a.status === 'confirmed');
+
+        document.getElementById('st-today').textContent   = todayAppts.length;
+        document.getElementById('st-vitals').textContent  = vitals.length;
+        document.getElementById('st-pending').textContent = pendingAppts.length;
+
+        const tbody = document.getElementById('today-appts');
+        if (todayAppts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty">No appointments scheduled for today.</td></tr>';
+        } else {
+            tbody.innerHTML = todayAppts.map(function(a) {
+                var actionBtn = (a.status !== 'cancelled' && a.status !== 'completed')
+                    ? '<button class="btn btn-primary btn-sm" onclick="goRecordVitals(' + a.patient_id + ',' + a.id + ')">Record Vitals</button>'
+                    : '—';
+                return '<tr>'
+                    + '<td>' + formatTime(a.appointment_time) + '</td>'
+                    + '<td>' + a.patient_name + '</td>'
+                    + '<td>' + a.doctor_name + '</td>'
+                    + '<td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.reason || '—') + '</td>'
+                    + '<td><span class="badge badge-' + a.status + '">' + a.status + '</span></td>'
+                    + '<td>' + actionBtn + '</td>'
+                    + '</tr>';
+            }).join('');
+        }
+    } catch(e) {
+        console.error('Overview error:', e);
+    }
+}
+
+// ── RECORD VITALS FORM ──
+async function loadPatientsForForm() {
+    try {
+        const [aData] = await Promise.all([apiFetch('/appointments')]);
+        const appts = aData.data || [];
+
+        // Build unique patient list from appointments
+        const seen = {};
+        const patients = [];
+        appts.forEach(function(a) {
+            if (!seen[a.patient_id]) {
+                seen[a.patient_id] = true;
+                patients.push({ id: a.patient_id, name: a.patient_name });
+            }
+        });
+
+        const pSel = document.getElementById('v-patient');
+        pSel.innerHTML = '<option value="">Select a patient…</option>'
+            + patients.map(function(p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
+
+        // Store appointments for the appointment dropdown
+        pSel._appts = appts;
+
+        // When patient changes, filter appointment dropdown
+        pSel.onchange = function() {
+            const patientId = parseInt(pSel.value);
+            const aSel = document.getElementById('v-appointment');
+            const filtered = appts.filter(function(a) {
+                return a.patient_id === patientId && (a.status === 'pending' || a.status === 'confirmed');
+            });
+            aSel.innerHTML = '<option value="">— No appointment —</option>'
+                + filtered.map(function(a) {
+                    return '<option value="' + a.id + '">' + formatDate(a.appointment_date) + ' ' + formatTime(a.appointment_time) + ' (Dr. ' + a.doctor_name + ')</option>';
+                }).join('');
+        };
+    } catch(e) {
+        console.error('loadPatientsForForm error:', e);
+    }
+}
+
+// Called from "Record Vitals" button on today's table — pre-fills the form
+function goRecordVitals(patientId, apptId) {
+    // Switch to record vitals section
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-record-vitals').classList.add('active');
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('nav a')[1].classList.add('active');
+    document.getElementById('section-title').textContent = 'Record Vitals';
+
+    loadPatientsForForm().then(function() {
+        document.getElementById('v-patient').value = patientId;
+        document.getElementById('v-patient').dispatchEvent(new Event('change'));
+        setTimeout(function() {
+            if (apptId) document.getElementById('v-appointment').value = apptId;
+        }, 200);
+    });
+}
+
+async function submitVitals() {
+    const msg       = document.getElementById('vitals-msg');
+    msg.className   = 'form-msg';
+    const patient_id     = document.getElementById('v-patient').value;
+    const appointment_id = document.getElementById('v-appointment').value;
+    const blood_pressure = document.getElementById('v-bp').value.trim();
+    const temperature    = document.getElementById('v-temp').value;
+    const pulse          = document.getElementById('v-pulse').value;
+    const weight         = document.getElementById('v-weight').value;
+    const oxygen_saturation = document.getElementById('v-o2').value;
+
+    if (!patient_id) {
+        msg.textContent = 'Please select a patient.';
+        msg.className = 'form-msg err'; return;
+    }
+    if (!blood_pressure && !temperature && !pulse && !weight && !oxygen_saturation) {
+        msg.textContent = 'Please enter at least one vital measurement.';
+        msg.className = 'form-msg err'; return;
+    }
+
+    try {
+        await apiFetch('/vitals', {
+            method: 'POST',
+            body: JSON.stringify({
+                patient_id,
+                appointment_id: appointment_id || null,
+                blood_pressure:     blood_pressure || null,
+                temperature:        temperature    || null,
+                pulse:              pulse          || null,
+                weight:             weight         || null,
+                oxygen_saturation:  oxygen_saturation || null
+            })
+        });
+        msg.textContent = '✓ Vitals saved successfully!';
+        msg.className = 'form-msg ok';
+        // Clear form
+        ['v-bp','v-temp','v-pulse','v-weight','v-o2'].forEach(function(id) {
+            document.getElementById(id).value = '';
+        });
+        loadOverview();
+    } catch(e) {
+        msg.textContent = e.message;
+        msg.className = 'form-msg err';
+    }
+}
+
+// ── ALL APPOINTMENTS ──
+async function loadAllAppts() {
+    try {
+        const data = await apiFetch('/appointments');
+        const appts = data.data || [];
+        const tbody = document.getElementById('all-appts');
+        if (appts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty">No appointments found.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = appts.map(function(a) {
+            var actionBtn = (a.status !== 'cancelled' && a.status !== 'completed')
+                ? '<button class="btn btn-primary btn-sm" onclick="goRecordVitals(' + a.patient_id + ',' + a.id + ')">Record Vitals</button>'
+                : '—';
+            var dateStr = a.appointment_date ? a.appointment_date.toString().slice(0,10) : '—';
+            return '<tr>'
+                + '<td>' + formatDate(dateStr) + '</td>'
+                + '<td>' + formatTime(a.appointment_time) + '</td>'
+                + '<td>' + a.patient_name + '</td>'
+                + '<td>' + a.doctor_name + '</td>'
+                + '<td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.reason || '—') + '</td>'
+                + '<td><span class="badge badge-' + a.status + '">' + a.status + '</span></td>'
+                + '<td>' + actionBtn + '</td>'
+                + '</tr>';
+        }).join('');
+    } catch(e) {
+        document.getElementById('all-appts').innerHTML = '<tr><td colspan="7" class="empty">Could not load appointments.</td></tr>';
+    }
+}
+
+// ── VITALS HISTORY ──
+async function loadVitalsHistory() {
+    try {
+        const data = await apiFetch('/vitals');
+        const vitals = data.data || [];
+        const tbody  = document.getElementById('vitals-history-table');
+        if (vitals.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty">No vitals recorded yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = vitals.map(function(v) {
+            return '<tr>'
+                + '<td>' + formatDate(v.recorded_at) + '</td>'
+                + '<td>' + (v.patient_name || '—') + '</td>'
+                + '<td>' + (v.blood_pressure || '—') + '</td>'
+                + '<td>' + (v.temperature   || '—') + '</td>'
+                + '<td>' + (v.pulse         || '—') + '</td>'
+                + '<td>' + (v.weight        || '—') + '</td>'
+                + '<td>' + (v.oxygen_saturation || '—') + '</td>'
+                + '</tr>';
+        }).join('');
+    } catch(e) {
+        document.getElementById('vitals-history-table').innerHTML = '<tr><td colspan="7" class="empty">Could not load vitals history.</td></tr>';
+    }
+}
+
+loadOverview();
+</script>
+</body>
+</html>
