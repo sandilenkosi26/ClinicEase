@@ -131,24 +131,10 @@ Copy the output and replace the hash in `schema.sql`, then re-import, OR update 
 
 - [ ] All code pushed to GitHub
 - [ ] Lecturer **xpiyose** added as collaborator
-- [ ] `.env` is in `.gitignore` (never push secrets)
-- [ ] `README.md` is complete
 - [ ] `schema.sql` runs without errors
 - [ ] `npm install` + `node server.js` starts the server
 
 ---
-
-## Learning Units Covered
-
-1. ✅ Web foundations & server-side programming (Node.js + Express)
-2. ✅ Client–server communication & RESTful APIs (7 route files, correct HTTP verbs)
-3. ✅ User experience design & responsive interfaces (DM Sans, mobile-responsive)
-4. ✅ Full-stack integration (frontend ↔ Express ↔ MySQL)
-5. ✅ Database design & CRUD (6 tables, full CRUD operations)
-6. ✅ Intelligent features — AI/NLP (symptom checker + sentiment analysis)
-7. ✅ Security (JWT, bcrypt, Helmet, CORS, input validation, role-based access)
-8. ✅ Deployment readiness (.env.example, README, XAMPP instructions)
-
 # ClinicEase
 A full-stack clinic management system built with Node.js, Express, MySQL and HTML/CSS/JS. Supports patient, doctor, nurse and admin roles with appointment booking, medical records, AI symptom checker and OTP password reset.
 96a9bb697489fbc55f1a28d1235e2ad6d9054f4d
