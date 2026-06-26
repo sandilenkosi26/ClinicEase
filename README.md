@@ -1,6 +1,5 @@
  HEAD
 # ClinicEase – Clinic Management System
-
 > Internet Programming 2 · Assessment 3 · ITNP300/ITPR300 · MUT
 
 A full-stack web-based clinic management system built with Node.js, Express, HTML/CSS/JavaScript, and MySQL (via XAMPP).
