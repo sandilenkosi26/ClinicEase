@@ -1,3 +1,4 @@
+ HEAD
 # ClinicEase – Clinic Management System
 
 > Internet Programming 2 · Assessment 3 · ITNP300/ITPR300 · MUT
@@ -148,3 +149,7 @@ Copy the output and replace the hash in `schema.sql`, then re-import, OR update 
 6. ✅ Intelligent features — AI/NLP (symptom checker + sentiment analysis)
 7. ✅ Security (JWT, bcrypt, Helmet, CORS, input validation, role-based access)
 8. ✅ Deployment readiness (.env.example, README, XAMPP instructions)
+
+# ClinicEase
+A full-stack clinic management system built with Node.js, Express, MySQL and HTML/CSS/JS. Supports patient, doctor, nurse and admin roles with appointment booking, medical records, AI symptom checker and OTP password reset.
+96a9bb697489fbc55f1a28d1235e2ad6d9054f4d
