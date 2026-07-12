@@ -65,7 +65,7 @@ app.use((err, req, res, next) => {
 });
 
 // ── Start server ──
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n✅  ClinicEase server running on http://localhost:${PORT}`);
     console.log(`📋  API base:  http://localhost:${PORT}/api`);
     console.log(`🌐  Frontend:  http://localhost:${PORT}\n`);
