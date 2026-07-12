@@ -33,8 +33,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ── Serve static frontend files ──
-app.use(express.static(path.join(__dirname, '../frontend')));
+// ── Serve static frontend files (local only) ──
+const frontendPath = path.join(__dirname, '../frontend');
+const fs = require('fs');
+if (fs.existsSync(frontendPath)) {
+    app.use(express.static(frontendPath));
+}
 
 // ── API routes ──
 app.use('/api/auth',         authRoutes);
@@ -52,7 +56,12 @@ app.get('/api/health', (req, res) => {
 
 // ── Catch-all ──
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    const indexPath = path.join(__dirname, '../frontend/index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.json({ status: 'ClinicEase API is running', version: '1.0.0' });
+    }
 });
 
 // ── Global error handler ──
