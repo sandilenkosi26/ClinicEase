@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "npm install --omit=dev --ignore-scripts"
 
 [deploy]
 startCommand = "node server.js"
