@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinicEase – Doctor Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{--primary:#1a6b5a;--primary-l:#22886f;--accent:#e8f5f1;--text:#1c2b27;--muted:#5a736d;--border:#cde3dd;--surface:#fff;--bg:#f0f7f5}
+        body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+        .sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:linear-gradient(180deg,#1a6b5a 0%,#0f4a3c 100%);color:#fff;display:flex;flex-direction:column;padding:1.5rem 0;z-index:100}
+        .sidebar-brand{padding:0 1.5rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.1)}
+        .sidebar-brand h1{font-family:'DM Serif Display',serif;font-size:1.4rem}
+        .sidebar-brand p{font-size:0.75rem;opacity:0.6;margin-top:2px}
+        nav{flex:1;padding-top:1rem}
+        nav a{display:flex;align-items:center;gap:10px;padding:11px 1.5rem;font-size:0.88rem;color:rgba(255,255,255,0.75);text-decoration:none;cursor:pointer;transition:background 0.15s}
+        nav a:hover,nav a.active{background:rgba(255,255,255,0.12);color:#fff}
+        .sidebar-footer{padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,0.1)}
+        .logout-btn{margin-top:10px;width:100%;padding:8px;border:1px solid rgba(255,255,255,0.25);background:transparent;color:#fff;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer}
+        .logout-btn:hover{background:rgba(255,255,255,0.1)}
+        .main{margin-left:240px;min-height:100vh}
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between}
+        .topbar h2{font-family:'DM Serif Display',serif;font-size:1.3rem}
+        .content{padding:2rem}
+        .section{display:none}
+        .section.active{display:block;animation:fadeIn 0.2s ease}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+        .stat-card{background:var(--surface);border-radius:14px;padding:1.2rem 1.5rem;border:1px solid var(--border)}
+        .stat-card .label{font-size:0.75rem;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+        .stat-card .value{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--primary);margin-top:4px}
+        .stat-card .sub{font-size:0.75rem;color:var(--muted);margin-top:2px}
+        .panel{background:var(--surface);border-radius:14px;border:1px solid var(--border);margin-bottom:1.5rem;overflow:hidden}
+        .panel-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem}
+        .panel-header h3{font-size:1rem;font-weight:600}
+        .panel-body{padding:1.5rem}
+        table{width:100%;border-collapse:collapse;font-size:0.87rem}
+        th{text-align:left;padding:9px 14px;font-size:0.73rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;border-bottom:1px solid var(--border);white-space:nowrap}
+        td{padding:11px 14px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+        tr:last-child td{border-bottom:none}
+        tr:hover td{background:#fafffe}
+        .empty{text-align:center;padding:2.5rem;color:var(--muted);font-size:0.88rem}
+        .btn{padding:9px 20px;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.87rem;font-weight:500;cursor:pointer;transition:background 0.15s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:var(--primary-l)}
+        .btn-sm{padding:5px 12px;font-size:0.78rem;border-radius:7px}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+        .field{display:flex;flex-direction:column;gap:5px}
+        .field label{font-size:0.82rem;font-weight:500}
+        .field input,.field select,.field textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;background:var(--surface)}
+        .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,90,0.1)}
+        .field-full{grid-column:1/-1}
+        .form-msg{font-size:0.85rem;margin-top:0.75rem;padding:9px 14px;border-radius:8px;display:none}
+        .form-msg.ok{background:#d1fae5;color:#065f46;display:block}
+        .form-msg.err{background:#fee2e2;color:#991b1b;display:block}
+        .status-sel{padding:4px 8px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:0.8rem;outline:none;background:var(--surface);cursor:pointer}
+        .status-sel:focus{border-color:var(--primary)}
+        .sentiment-badge{padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:500;display:inline-block}
+        .sent-normal{background:#d1fae5;color:#065f46}
+        .sent-warning{background:#fff8e1;color:#b45309}
+        .sent-critical{background:#fee2e2;color:#991b1b}
+        @media(max-width:800px){.sidebar{display:none}.main{margin-left:0}.stat-row{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-brand"><h1>ClinicEase</h1><p>Doctor Portal</p></div>
+    <nav>
+        <a class="active" onclick="showSec(this,'overview')"><span>🏠</span> Overview</a>
+        <a onclick="showSec(this,'appointments')"><span>📅</span> My Appointments</a>
+        <a onclick="showSec(this,'write-record')"><span>📝</span> Write Record</a>
+        <a onclick="showSec(this,'records')"><span>📁</span> Patient Records</a>
+        <a onclick="showSec(this,'history')"><span>🩺</span> Patient History</a>
+        <a onclick="showSec(this,'drafts')"><span>📄</span> Draft Records</a>
+    </nav>
+    <div class="sidebar-footer">
+        <div style="font-size:0.88rem;font-weight:500" id="sb-name">Loading…</div>
+        <div style="font-size:0.75rem;opacity:0.55">Doctor</div>
+        <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+</aside>
+
+<div class="main">
+    <div class="topbar">
+        <h2 id="section-title">Overview</h2>
+        <span style="font-size:0.82rem;color:var(--muted)" id="today-date"></span>
+    </div>
+    <div class="content">
+
+        <!-- OVERVIEW -->
+        <div class="section active" id="sec-overview">
+            <div class="stat-row">
+                <div class="stat-card">
+                    <div class="label">Today's Appointments</div>
+                    <div class="value" id="st-today">—</div>
+                    <div class="sub">Scheduled for today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Total Appointments</div>
+                    <div class="value" id="st-total">—</div>
+                    <div class="sub">All time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Records Written</div>
+                    <div class="value" id="st-records">—</div>
+                    <div class="sub">Consultations logged</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>Today's Appointments</h3></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Time</th><th>Patient</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="today-table"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL APPOINTMENTS -->
+        <div class="section" id="sec-appointments">
+            <div class="panel">
+                <div class="panel-header"><h3>All My Appointments</h3></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Date</th><th>Time</th><th>Patient</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="all-appts-table"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- WRITE RECORD -->
+        <div class="section" id="sec-write-record">
+            <div class="panel">
+                <div class="panel-header"><h3>Write Medical Record</h3></div>
+                <div class="panel-body">
+                    <div class="form-grid">
+                        <div class="field field-full">
+                            <label>Select Patient (from your appointments)</label>
+                            <select id="r-patient"><option value="">Loading…</option></select>
+                        </div>
+                        <div class="field field-full">
+                            <label>Link to Appointment (optional)</label>
+                            <select id="r-appointment"><option value="">— None —</option></select>
+                        </div>
+                        <div class="field field-full">
+                            <label>Diagnosis</label>
+                            <textarea id="r-diagnosis" rows="3" placeholder="Enter diagnosis…"></textarea>
+                        </div>
+                        <div class="field field-full">
+                            <label>Prescription</label>
+                            <textarea id="r-prescription" rows="3" placeholder="Medications, dosage, instructions…"></textarea>
+                        </div>
+                        <div class="field field-full">
+                            <label>Clinical Notes <span style="font-size:0.75rem;color:var(--muted)">(AI sentiment analysis will flag concerning language)</span></label>
+                            <textarea id="r-notes" rows="4" placeholder="Additional clinical observations…"></textarea>
+                        </div>
+                    </div>
+                    <div id="record-msg" class="form-msg"></div>
+                    <div id="sentiment-preview" style="display:none;margin-top:0.75rem"></div>
+                    <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap">
+                        <button class="btn btn-primary" onclick="submitRecord()">Save Medical Record</button>
+                        <button class="btn" style="background:var(--accent);color:var(--primary)" onclick="saveDraft()">Save as Draft</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PATIENT HISTORY LOOKUP -->
+        <div class="section" id="sec-history">
+            <div class="panel">
+                <div class="panel-header"><h3>View Patient Full History</h3></div>
+                <div class="panel-body">
+                    <p style="font-size:0.88rem;color:var(--muted);margin-bottom:1rem">Select a patient from your appointments to view their complete medical history, vitals and past records.</p>
+                    <select id="hist-patient-sel" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:0.9rem;outline:none;min-width:260px">
+                        <option value="">Select a patient…</option>
+                    </select>
+                    <button class="btn btn-primary" style="margin-left:0.75rem" onclick="viewPatientHistory()">View History</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DRAFT RECORDS -->
+        <div class="section" id="sec-drafts">
+            <div class="panel">
+                <div class="panel-header"><h3>Draft Records</h3><span style="font-size:0.82rem;color:var(--muted)">Incomplete consultations saved for later</span></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Patient</th><th>Diagnosis (draft)</th><th>Last saved</th><th>Action</th></tr></thead>
+                        <tbody id="drafts-table"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PATIENT RECORDS -->
+        <div class="section" id="sec-records">
+            <div class="panel">
+                <div class="panel-header"><h3>Records I Have Written</h3></div>
+                <div class="panel-body">
+                    <table>
+                        <thead><tr><th>Date</th><th>Patient</th><th>Diagnosis</th><th>Prescription</th><th>AI Flag</th></tr></thead>
+                        <tbody id="records-table"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- PATIENT HISTORY MODAL -->
+<div id="history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem">
+    <div style="background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:700px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+            <h3 style="font-family:'DM Serif Display',serif;font-size:1.3rem" id="hist-patient-name">Patient History</h3>
+            <button onclick="document.getElementById('history-modal').style.display='none'" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted)">✕</button>
+        </div>
+        <div id="hist-content"><p style="color:var(--muted);font-size:0.9rem">Loading…</p></div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'https://clinicease-production-9efe.up.railway.app/api';
+function getToken() { return localStorage.getItem('ce_token'); }
+function getUser() { try { return JSON.parse(localStorage.getItem('ce_user') || '{}'); } catch { return {}; } }
+function logout() { localStorage.removeItem('ce_token'); localStorage.removeItem('ce_user'); window.location.href = '/index.html'; }
+async function apiFetch(endpoint, options = {}) {
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...(options.headers || {}) };
+    const res = await fetch(API_BASE + endpoint, { ...options, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+    return data;
+}
+function requireAuth(allowedRoles) {
+    const token = getToken(); const user = getUser();
+    if (!token || !user.id) { window.location.href = '/index.html'; return false; }
+    if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) { window.location.href = '/index.html'; return false; }
+    return true;
+}
+function formatDate(d) { if (!d) return '—'; var s = d.toString().slice(0,10); return new Date(s + 'T12:00:00').toLocaleDateString('en-ZA',{day:'numeric',month:'long',year:'numeric'}); }
+function formatTime(t) { if (!t) return '—'; return t.toString().slice(0,5); }
+
+// Defensive auth check - clear bad data and redirect cleanly
+(function() {
+    var token = localStorage.getItem('ce_token');
+    var userRaw = localStorage.getItem('ce_user');
+    if (!token || !userRaw) { window.location.replace('/index.html'); return; }
+    try {
+        var u = JSON.parse(userRaw);
+        if (!u || !u.id || u.role !== 'doctor') {
+            localStorage.removeItem('ce_token');
+            localStorage.removeItem('ce_user');
+            window.location.replace('/index.html');
+        }
+    } catch(e) {
+        localStorage.removeItem('ce_token');
+        localStorage.removeItem('ce_user');
+        window.location.replace('/index.html');
+    }
+})();
+const user = getUser();
+document.getElementById('sb-name').textContent    = user.full_name || 'Doctor';
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-ZA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+function showSec(el, name) {
+    document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById('sec-' + name).classList.add('active');
+    document.querySelectorAll('nav a').forEach(function(a){ a.classList.remove('active'); });
+    el.classList.add('active');
+    var titles = {overview:'Overview', appointments:'My Appointments', 'write-record':'Write Record', records:'Patient Records'};
+    document.getElementById('section-title').textContent = titles[name] || name;
+    if (name === 'appointments')  loadAllAppts();
+    if (name === 'write-record')  loadPatientsForRecord();
+    if (name === 'records')       loadMyRecords();
+    if (name === 'history')       loadHistorySection();
+    if (name === 'drafts')        loadDrafts();
+}
+
+// ── OVERVIEW ──
+async function loadOverview() {
+    try {
+        var aRes = await apiFetch('/appointments').catch(function(){ return {data:[]}; });
+        var rRes = await apiFetch('/records').catch(function(){ return {data:[]}; });
+        var appts   = aRes.data || [];
+        var records = rRes.data || [];
+        var todayStr = new Date().toISOString().split('T')[0];
+        var todayAppts = appts.filter(function(a){
+            return a.appointment_date && a.appointment_date.toString().slice(0,10) === todayStr;
+        });
+        document.getElementById('st-today').textContent   = todayAppts.length;
+        document.getElementById('st-total').textContent   = appts.length;
+        document.getElementById('st-records').textContent = records.length;
+        renderApptRows('today-table', todayAppts, 5, true);
+    } catch(e){ console.error('Overview error:', e); }
+}
+
+function buildStatusSel(apptId, currentStatus) {
+    return '<select class="status-sel" onchange="updateStatus(' + apptId + ',this.value)">'
+        + '<option value="pending"'   + (currentStatus==='pending'   ?' selected':'') + '>Pending</option>'
+        + '<option value="confirmed"' + (currentStatus==='confirmed' ?' selected':'') + '>Confirmed</option>'
+        + '<option value="completed"' + (currentStatus==='completed' ?' selected':'') + '>Completed</option>'
+        + '<option value="cancelled"' + (currentStatus==='cancelled' ?' selected':'') + '>Cancelled</option>'
+        + '</select>';
+}
+
+async function updateStatus(id, status) {
+    try {
+        await apiFetch('/appointments/' + id, { method:'PUT', body: JSON.stringify({ status: status }) });
+    } catch(e) { alert('Failed to update status: ' + e.message); }
+}
+
+function renderApptRows(tbodyId, appts, cols, todayView) {
+    var tbody = document.getElementById(tbodyId);
+    if (appts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="' + cols + '" class="empty">No appointments found.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = appts.map(function(a) {
+        var writeBtn = '<button class="btn btn-primary btn-sm" onclick="goWriteRecord(' + a.patient_id + ',' + a.id + ')">Write Record</button>';
+        var statusSel = buildStatusSel(a.id, a.status);
+        if (todayView) {
+            return '<tr>'
+                + '<td>' + formatTime(a.appointment_time) + '</td>'
+                + '<td>' + a.patient_name + '</td>'
+                + '<td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.reason||'—') + '</td>'
+                + '<td>' + statusSel + '</td>'
+                + '<td>' + writeBtn + '</td>'
+                + '</tr>';
+        } else {
+            return '<tr>'
+                + '<td>' + formatDate(a.appointment_date) + '</td>'
+                + '<td>' + formatTime(a.appointment_time) + '</td>'
+                + '<td>' + a.patient_name + '</td>'
+                + '<td style="font-size:0.82rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.reason||'—') + '</td>'
+                + '<td>' + statusSel + '</td>'
+                + '<td>' + writeBtn + '</td>'
+                + '</tr>';
+        }
+    }).join('');
+}
+
+async function loadAllAppts() {
+    try {
+        var data = await apiFetch('/appointments');
+        renderApptRows('all-appts-table', data.data || [], 6, false);
+    } catch(e) {
+        document.getElementById('all-appts-table').innerHTML = '<tr><td colspan="6" class="empty">Could not load appointments.</td></tr>';
+    }
+}
+
+// ── WRITE RECORD ──
+async function loadPatientsForRecord() {
+    try {
+        var data  = await apiFetch('/appointments');
+        var appts = data.data || [];
+        var seen = {}; var patients = [];
+        appts.forEach(function(a){
+            if (!seen[a.patient_id]){ seen[a.patient_id]=true; patients.push({id:a.patient_id,name:a.patient_name}); }
+        });
+        var pSel = document.getElementById('r-patient');
+        pSel.innerHTML = '<option value="">Select a patient…</option>'
+            + patients.map(function(p){ return '<option value="'+p.id+'">'+p.name+'</option>'; }).join('');
+        pSel._appts = appts;
+        pSel.onchange = function(){
+            var pid = parseInt(pSel.value);
+            var aSel = document.getElementById('r-appointment');
+            var filtered = appts.filter(function(a){ return a.patient_id===pid; });
+            aSel.innerHTML = '<option value="">— None —</option>'
+                + filtered.map(function(a){ return '<option value="'+a.id+'">'+formatDate(a.appointment_date)+' '+formatTime(a.appointment_time)+'</option>'; }).join('');
+        };
+    } catch(e){ console.error(e); }
+}
+
+function goWriteRecord(patientId, apptId) {
+    document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById('sec-write-record').classList.add('active');
+    document.querySelectorAll('nav a').forEach(function(a){ a.classList.remove('active'); });
+    document.querySelectorAll('nav a')[2].classList.add('active');
+    document.getElementById('section-title').textContent = 'Write Record';
+    loadPatientsForRecord().then(function(){
+        document.getElementById('r-patient').value = patientId;
+        document.getElementById('r-patient').dispatchEvent(new Event('change'));
+        setTimeout(function(){ if(apptId) document.getElementById('r-appointment').value = apptId; }, 200);
+    });
+}
+
+async function saveDraft() {
+    var patient_id     = document.getElementById('r-patient').value;
+    var appointment_id = document.getElementById('r-appointment').value;
+    var diagnosis      = document.getElementById('r-diagnosis').value.trim();
+    var prescription   = document.getElementById('r-prescription').value.trim();
+    var notes          = document.getElementById('r-notes').value.trim();
+    var msg = document.getElementById('record-msg');
+    if (!patient_id) { msg.textContent='Please select a patient.'; msg.className='form-msg err'; return; }
+    try {
+        await apiFetch('/extras/drafts', { method:'POST', body: JSON.stringify({ patient_id, appointment_id:appointment_id||null, diagnosis, prescription, notes }) });
+        msg.textContent = '✓ Draft saved. You can continue it later from Draft Records.';
+        msg.className = 'form-msg ok';
+    } catch(e) { msg.textContent = e.message; msg.className = 'form-msg err'; }
+}
+
+async function submitRecord() {
+    var msg     = document.getElementById('record-msg');
+    msg.className = 'form-msg';
+    var patient_id     = document.getElementById('r-patient').value;
+    var appointment_id = document.getElementById('r-appointment').value;
+    var diagnosis      = document.getElementById('r-diagnosis').value.trim();
+    var prescription   = document.getElementById('r-prescription').value.trim();
+    var notes          = document.getElementById('r-notes').value.trim();
+
+    if (!patient_id)  { msg.textContent='Please select a patient.'; msg.className='form-msg err'; return; }
+    if (!diagnosis)   { msg.textContent='Diagnosis is required.';    msg.className='form-msg err'; return; }
+
+    try {
+        var res = await apiFetch('/records', {
+            method: 'POST',
+            body: JSON.stringify({ patient_id, appointment_id: appointment_id||null, diagnosis, prescription, notes })
+        });
+        // Show sentiment result
+        var flag = res.sentiment_flag || 'normal';
+        var sentEl = document.getElementById('sentiment-preview');
+        var colors = {normal:'#d1fae5;color:#065f46', warning:'#fff8e1;color:#b45309', critical:'#fee2e2;color:#991b1b'};
+        sentEl.innerHTML = '<span style="background:'+colors[flag]+';padding:4px 12px;border-radius:8px;font-size:0.83rem;font-weight:500">AI Sentiment Flag: ' + flag.toUpperCase() + '</span>';
+        sentEl.style.display = 'block';
+        msg.textContent = '✓ Medical record saved.';
+        msg.className = 'form-msg ok';
+        ['r-diagnosis','r-prescription','r-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+    } catch(e) { msg.textContent = e.message; msg.className = 'form-msg err'; }
+}
+
+// ── RECORDS ──
+async function loadMyRecords() {
+    try {
+        var data    = await apiFetch('/records');
+        var records = data.data || [];
+        var tbody   = document.getElementById('records-table');
+        if (records.length === 0) { tbody.innerHTML='<tr><td colspan="5" class="empty">No records written yet.</td></tr>'; return; }
+        tbody.innerHTML = records.map(function(r){
+            var flagColors = {normal:'sent-normal', warning:'sent-warning', critical:'sent-critical'};
+            var cls = flagColors[r.sentiment_flag] || 'sent-normal';
+            return '<tr>'
+                +'<td>'+formatDate(r.created_at)+'</td>'
+                +'<td>'+r.patient_name+'</td>'
+                +'<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.diagnosis||'—')+'</td>'
+                +'<td style="font-size:0.82rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.prescription||'—')+'</td>'
+                +'<td><span class="sentiment-badge '+cls+'">'+(r.sentiment_flag||'normal')+'</span></td>'
+                +'</tr>';
+        }).join('');
+    } catch(e) {
+        document.getElementById('records-table').innerHTML = '<tr><td colspan="5" class="empty">Could not load records.</td></tr>';
+    }
+}
+
+// ── PATIENT HISTORY ──
+async function loadHistorySection() {
+    try {
+        var data  = await apiFetch('/appointments');
+        var appts = data.data || [];
+        var seen  = {}; var patients = [];
+        appts.forEach(function(a){ if(!seen[a.patient_id]){ seen[a.patient_id]=true; patients.push({id:a.patient_id,name:a.patient_name}); } });
+        var sel = document.getElementById('hist-patient-sel');
+        sel.innerHTML = '<option value="">Select a patient…</option>'
+            + patients.map(function(p){ return '<option value="'+p.id+'">'+p.name+'</option>'; }).join('');
+    } catch(e){ console.error(e); }
+}
+
+async function viewPatientHistory() {
+    var pid = document.getElementById('hist-patient-sel').value;
+    if (!pid) return;
+    var modal = document.getElementById('history-modal');
+    var content = document.getElementById('hist-content');
+    modal.style.display = 'flex';
+    content.innerHTML = '<p style="color:var(--muted);font-size:0.9rem">Loading…</p>';
+    try {
+        var data = await apiFetch('/extras/patient-history/' + pid);
+        var p    = data.data.patient;
+        var recs = data.data.records;
+        var vits = data.data.vitals;
+        document.getElementById('hist-patient-name').textContent = p.full_name + "'s History";
+        var dob  = p.date_of_birth ? p.date_of_birth.toString().slice(0,10) : '—';
+        content.innerHTML =
+            '<div style="background:#f0f7f5;border-radius:10px;padding:14px 16px;margin-bottom:1.2rem;font-size:0.87rem">'
+            +'<strong>'+p.full_name+'</strong> &nbsp;|&nbsp; '+p.gender+' &nbsp;|&nbsp; DOB: '+formatDate(dob)+' &nbsp;|&nbsp; '+p.phone+'</div>'
+            +'<h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.6rem">Medical Records ('+recs.length+')</h4>'
+            +(recs.length===0 ? '<p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem">No records found.</p>'
+            : '<table style="width:100%;border-collapse:collapse;font-size:0.83rem;margin-bottom:1.2rem">'
+                +'<thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Date</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Diagnosis</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Prescription</th></tr></thead>'
+                +'<tbody>'+recs.map(function(r){ return '<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 10px">'+formatDate(r.created_at)+'</td><td style="padding:8px 10px">'+( r.diagnosis||'—')+'</td><td style="padding:8px 10px;font-size:0.8rem">'+(r.prescription||'—')+'</td></tr>'; }).join('')+'</tbody></table>')
+            +'<h4 style="font-size:0.9rem;font-weight:600;margin-bottom:0.6rem">Vitals History ('+vits.length+')</h4>'
+            +(vits.length===0 ? '<p style="color:var(--muted);font-size:0.85rem">No vitals recorded.</p>'
+            : '<table style="width:100%;border-collapse:collapse;font-size:0.83rem">'
+                +'<thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Date</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">BP</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Temp</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Pulse</th><th style="padding:7px 10px;text-align:left;color:var(--muted);font-size:0.75rem">Weight</th></tr></thead>'
+                +'<tbody>'+vits.map(function(v){ return '<tr style="border-bottom:1px solid #f0f0f0"><td style="padding:8px 10px">'+formatDate(v.recorded_at)+'</td><td style="padding:8px 10px">'+(v.blood_pressure||'—')+'</td><td style="padding:8px 10px">'+(v.temperature||'—')+'</td><td style="padding:8px 10px">'+(v.pulse||'—')+'</td><td style="padding:8px 10px">'+(v.weight||'—')+'</td></tr>'; }).join('')+'</tbody></table>');
+    } catch(e) { content.innerHTML = '<p style="color:#c0392b;font-size:0.88rem">'+e.message+'</p>'; }
+}
+
+// ── DRAFTS ──
+async function loadDrafts() {
+    try {
+        var data   = await apiFetch('/extras/drafts');
+        var drafts = data.data || [];
+        var tbody  = document.getElementById('drafts-table');
+        if (drafts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty">No drafts saved.</td></tr>'; return;
+        }
+        tbody.innerHTML = drafts.map(function(d){
+            return '<tr>'
+                +'<td>'+d.patient_name+'</td>'
+                +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(d.diagnosis||'— empty —')+'</td>'
+                +'<td style="font-size:0.82rem;color:var(--muted)">'+formatDate(d.updated_at)+'</td>'
+                +'<td style="display:flex;gap:6px">'
+                    +'<button class="btn btn-primary btn-sm" onclick="loadDraftIntoForm('+d.id+','+d.patient_id+','+d.appointment_id+',`'+(d.diagnosis||'')+' `,`'+(d.prescription||'')+' `,`'+(d.notes||'')+' `)">Continue</button>'
+                    +'<button class="btn btn-sm" style="background:#fee2e2;color:#991b1b;border:none;cursor:pointer" onclick="deleteDraft('+d.id+')">Discard</button>'
+                +'</td>'
+                +'</tr>';
+        }).join('');
+    } catch(e) { document.getElementById('drafts-table').innerHTML = '<tr><td colspan="4" class="empty">Could not load drafts.</td></tr>'; }
+}
+
+function loadDraftIntoForm(draftId, patientId, apptId, diagnosis, prescription, notes) {
+    showSec(document.querySelectorAll('nav a')[2], 'write-record');
+    loadPatientsForRecord().then(function(){
+        document.getElementById('r-patient').value = patientId;
+        document.getElementById('r-patient').dispatchEvent(new Event('change'));
+        setTimeout(function(){
+            if (apptId) document.getElementById('r-appointment').value = apptId;
+            document.getElementById('r-diagnosis').value    = diagnosis.trim();
+            document.getElementById('r-prescription').value = prescription.trim();
+            document.getElementById('r-notes').value        = notes.trim();
+        }, 200);
+    });
+}
+
+async function deleteDraft(id) {
+    if (!confirm('Discard this draft?')) return;
+    await apiFetch('/extras/drafts/' + id, { method:'DELETE' });
+    loadDrafts();
+}
+
+loadOverview();
+</script>
+</body>
+</html>
